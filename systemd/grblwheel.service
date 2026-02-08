@@ -1,0 +1,15 @@
+[Unit]
+Description=GrblWheel backend
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/GrblWheel
+Environment=PATH=/home/pi/GrblWheel/.venv/bin:/usr/bin
+ExecStart=/home/pi/GrblWheel/.venv/bin/python -m grblwheel.main
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

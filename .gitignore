@@ -1,0 +1,26 @@
+# Config with local overrides (keep example in repo)
+config/config.yaml
+
+# Uploaded G-code
+gcode/
+uploads/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
