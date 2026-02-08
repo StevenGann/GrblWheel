@@ -14,23 +14,39 @@ GrblWheel lets you control a GRBL-based CNC mill from a Raspberry Pi with an opt
 
 ## Project structure
 
-```
-GrblWheel/
-├── backend/grblwheel/          # Python package
-│   ├── main.py                 # FastAPI app, static serving, lifespan
-│   ├── config.py               # YAML config load/merge
-│   ├── serial_grbl.py          # Serial port list, connect, send line (GRBL)
-│   ├── files.py                # G-code file storage (safe names, list/read/delete)
-│   ├── job_runner.py           # Run file line-by-line, pause/resume/stop, progress
-│   ├── hardware_integration.py # Wire GPIO jog/buttons to GRBL and macros
-│   ├── api/                    # REST + WebSocket routes
-│   │   ├── health.py, serial_api.py, macros_api.py, files_api.py, job_api.py
-│   └── hardware/               # GPIO abstraction (mock on Windows, pigpio on Pi)
-├── frontend/                   # Vue 3 + Vite SPA (built to frontend/dist)
-├── config/config.example.yaml  # Example config (copy to config.yaml)
-├── systemd/                    # Pi: grblwheel.service, grblwheel-kiosk.service, kiosk.sh
-├── scripts/                    # install-pi.sh, update-pi.sh, install-win.ps1, update-win.ps1
-└── tests/                      # Pytest (API and config)
+```mermaid
+flowchart TB
+  root[GrblWheel]
+  root --> backend[backend/grblwheel]
+  root --> frontend[frontend]
+  root --> configDir[config]
+  root --> systemd[systemd]
+  root --> scripts[scripts]
+  root --> tests[tests]
+
+  backend --> main[main.py]
+  backend --> configPy[config.py]
+  backend --> serialGrbl[serial_grbl.py]
+  backend --> filesPy[files.py]
+  backend --> jobRunner[job_runner.py]
+  backend --> hwIntegration[hardware_integration.py]
+  backend --> apiDir[api]
+  backend --> hwDir[hardware]
+
+  apiDir --> health[health.py]
+  apiDir --> serialApi[serial_api.py]
+  apiDir --> macrosApi[macros_api.py]
+  apiDir --> filesApi[files_api.py]
+  apiDir --> jobApi[job_api.py]
+
+  hwDir --> base[base.py]
+  hwDir --> mock[mock_controller.py]
+  hwDir --> gpio[gpio_controller.py]
+
+  configDir --> configExample[config.example.yaml]
+  frontend --> frontendNote["Vue 3 + Vite SPA to frontend/dist"]
+  systemd --> systemdNote["grblwheel.service, kiosk.service, kiosk.sh"]
+  scripts --> scriptsNote["install-pi.sh, update-pi.sh, install-win.ps1, update-win.ps1"]
 ```
 
 ## Requirements
