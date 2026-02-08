@@ -1,3 +1,4 @@
+# GrblWheel kiosk: Chromium fullscreen to http://127.0.0.1:8765. Requires desktop (graphical.target).
 [Unit]
 Description=GrblWheel kiosk (Chromium fullscreen)
 After=graphical.target grblwheel.service

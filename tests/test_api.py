@@ -1,4 +1,8 @@
-"""API tests using FastAPI TestClient."""
+"""API tests using FastAPI TestClient.
+
+Covers health, root, serial ports/state, macros list, job status.
+No real serial connection; app uses default config.
+"""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +12,7 @@ from grblwheel.main import create_app
 
 @pytest.fixture
 def client():
+    """Fresh app and TestClient for each test."""
     app = create_app()
     return TestClient(app)
 

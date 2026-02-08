@@ -1,4 +1,7 @@
-"""Config loading tests."""
+"""Config and file-helpers tests.
+
+Covers load_config (default and from file), safe_filename (allowed vs rejected names).
+"""
 
 import tempfile
 from pathlib import Path

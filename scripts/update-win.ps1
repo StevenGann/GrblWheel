@@ -1,5 +1,6 @@
-# Pull latest GrblWheel from GitHub and run the install script.
+# Pull latest GrblWheel from GitHub and run the Windows install script.
 # Run from repo root: .\scripts\update-win.ps1
+# Exits with error if the current directory is not a git repository.
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path

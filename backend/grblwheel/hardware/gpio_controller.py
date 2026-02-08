@@ -1,4 +1,8 @@
-"""Raspberry Pi GPIO hardware controller using pigpio (optional dependency)."""
+"""Raspberry Pi GPIO hardware controller using pigpio (optional dependency).
+
+Requires the pigpio daemon (sudo pigpiod). Encoder pins (clk, dt) and button/switch
+pins are read from config.hardware. Encoder uses a background thread for polling.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +14,7 @@ from grblwheel.hardware.base import HardwareController, JogMode
 
 
 class GpioHardwareController(HardwareController):
-    """Uses pigpio for rotary encoder (KY-040 style) and buttons. Requires: sudo pigpiod."""
+    """Pi GPIO: KY-040 style rotary encoder (jog), optional buttons and mode switch. Requires pigpiod."""
 
     def __init__(self, config: dict):
         self._config = config

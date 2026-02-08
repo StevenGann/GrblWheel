@@ -1,4 +1,9 @@
-"""FastAPI application entry and static file serving."""
+"""FastAPI application entry and static file serving.
+
+Creates the app with config from load_config(), mounts /api routes, and serves
+the Vue SPA from frontend/dist when present. Lifespan sets up and tears down
+the hardware controller (GPIO on Pi when enabled).
+"""
 
 from __future__ import annotations
 
@@ -12,12 +17,13 @@ from fastapi.staticfiles import StaticFiles
 
 from grblwheel.config import load_config
 
-# Will be mounted after we have a built frontend
+# SPA build output; backend serves it when present (e.g. after npm run build).
 FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Startup: init hardware controller if gpio_enabled. Shutdown: stop controller."""
     from grblwheel.hardware_integration import setup_hardware, teardown_hardware
     setup_hardware(app)
     yield
@@ -25,6 +31,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app(config_path: str | None = None) -> FastAPI:
+    """Build the FastAPI app: config, CORS, /api router, optional SPA static + catch-all."""
     config = load_config(config_path)
     app = FastAPI(
         title="GrblWheel",

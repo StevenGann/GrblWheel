@@ -1,4 +1,4 @@
-"""Macros: run a named sequence of G-code lines."""
+"""Macros API: list macro names from config and run a macro (send each line, wait for ok)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ router = APIRouter()
 
 
 def get_grbl(request: Request) -> GrblSerial:
+    """Return the app-scoped GrblSerial instance; create if missing."""
     if not hasattr(request.app.state, "grbl"):
         request.app.state.grbl = GrblSerial()
     return request.app.state.grbl

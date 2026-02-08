@@ -2,6 +2,37 @@
 
 GRBL jog wheel and G-code sender for Raspberry Pi (and Windows for development). Fullscreen touch UI + web interface, file upload, macros, and optional GPIO hardware (rotary encoder, buttons).
 
+## Overview
+
+GrblWheel lets you control a GRBL-based CNC mill from a Raspberry Pi with an optional physical jog wheel, or from any machine (including Windows) via the same web UI. It provides:
+
+- **Web UI**: Connection to GRBL over USB serial, G-code command input, file upload and run (with optional start-at-line), job pause/resume/stop, Zero X/Y, Zero Z, Z probe macros.
+- **Appliance mode (Pi)**: systemd services for auto-start and crash restart; Chromium kiosk for fullscreen touch on a small HDMI display.
+- **Hardware (Pi, optional)**: Rotary encoder as jog wheel, multi-position switch for axis/mode, buttons mapped to macros. Uses pigpio; no GPIO on Windows.
+
+**Architecture**: Python backend (FastAPI) serves REST and WebSocket APIs and (when built) the Vue 3 frontend. Serial communication with GRBL is synchronous and run in a thread pool. Job runner sends G-code files line-by-line (wait for `ok`). Config is YAML; macros and hardware pins are configured there.
+
+## Project structure
+
+```
+GrblWheel/
+├── backend/grblwheel/          # Python package
+│   ├── main.py                 # FastAPI app, static serving, lifespan
+│   ├── config.py               # YAML config load/merge
+│   ├── serial_grbl.py          # Serial port list, connect, send line (GRBL)
+│   ├── files.py                # G-code file storage (safe names, list/read/delete)
+│   ├── job_runner.py           # Run file line-by-line, pause/resume/stop, progress
+│   ├── hardware_integration.py # Wire GPIO jog/buttons to GRBL and macros
+│   ├── api/                    # REST + WebSocket routes
+│   │   ├── health.py, serial_api.py, macros_api.py, files_api.py, job_api.py
+│   └── hardware/               # GPIO abstraction (mock on Windows, pigpio on Pi)
+├── frontend/                   # Vue 3 + Vite SPA (built to frontend/dist)
+├── config/config.example.yaml  # Example config (copy to config.yaml)
+├── systemd/                    # Pi: grblwheel.service, grblwheel-kiosk.service, kiosk.sh
+├── scripts/                    # install-pi.sh, update-pi.sh, install-win.ps1, update-win.ps1
+└── tests/                      # Pytest (API and config)
+```
+
 ## Requirements
 
 - Python 3.10+
@@ -100,6 +131,39 @@ Pulls the latest code and runs the install script again.
 4. Build frontend on Pi or copy `frontend/dist` from your PC: `cd frontend && npm install && npm run build`.
 5. Install systemd units (adjust paths in the service files if needed), then `sudo systemctl daemon-reload && sudo systemctl enable grblwheel grblwheel-kiosk && sudo systemctl start grblwheel`.
 6. For GPIO (jog wheel): run pigpio daemon: `sudo pigpiod` (or enable on boot).
+
+## Config reference
+
+Config file: `config/config.yaml` (copy from `config/config.example.yaml`). Key sections:
+
+| Section    | Purpose |
+|-----------|---------|
+| `server`  | `host`, `port` for the HTTP server (default 8765). |
+| `serial`  | `baud` (default 115200). `port` is usually left unset; selected in the UI. |
+| `paths`   | `upload_dir`: directory for uploaded G-code (relative to config dir). |
+| `gpio_enabled` | Set `true` on Pi to enable jog wheel/buttons; ignored on Windows. |
+| `macros`  | Map macro name → list of G-code lines (e.g. `zero_xy`, `zero_z`, `z_probe`). |
+| `hardware`| When `gpio_enabled`: `buttons` (pin → macro name), `encoder` (`clk`, `dt` GPIO), `jog_mode_switch` (list of pins for X/Y/Z/feedrate). |
+
+Override config path with env: `GRBLWHEEL_CONFIG=/path/to/config.yaml`.
+
+## API overview
+
+All API routes are under `/api`. OpenAPI docs at `/docs` when the server is running.
+
+- **Health**: `GET /api/health`
+- **Serial**: `GET /api/serial/ports`, `GET /api/serial/state`, `POST /api/serial/connect`, `POST /api/serial/disconnect`, `POST /api/serial/send` (body: `{ "command": "G0 X10" }`)
+- **Macros**: `GET /api/macros`, `POST /api/macros/{name}/run`
+- **Files**: `GET /api/files`, `POST /api/files/upload`, `GET /api/files/{name}/lines`, `DELETE /api/files/{name}`
+- **Job**: `POST /api/job/start` (body: `{ "filename", "start_line" }`), `GET /api/job/status`, `POST /api/job/pause`, `POST /api/job/resume`, `POST /api/job/stop`, `WebSocket /api/job/ws` (progress pushed to clients)
+
+## For developers / handoff
+
+- **Adding a new API route**: Add a router in `backend/grblwheel/api/` and include it in `api/__init__.py`.
+- **Changing macros or default config**: Edit `config.py` `DEFAULT_CONFIG` and/or `config.example.yaml`.
+- **Frontend**: Vue 3 Composition API in `frontend/src/App.vue`; build with `npm run build` in `frontend/`; backend serves `frontend/dist` when present.
+- **Tests**: `pytest` with `tests/test_api.py` (FastAPI TestClient) and `tests/test_config.py`. Install dev deps: `pip install -e ".[dev]"`.
+- **GRBL protocol**: 115200 baud, CR line ending; send one line, wait for `ok` or `error` before next (see `serial_grbl.py`).
 
 ## License
 

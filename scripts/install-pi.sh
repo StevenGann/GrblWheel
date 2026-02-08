@@ -1,6 +1,9 @@
 #!/bin/bash
-# GrblWheel Pi install script. Run from repo root: ./scripts/install-pi.sh
+# GrblWheel Raspberry Pi install script.
+# Run from repo root: ./scripts/install-pi.sh
 # Or from anywhere: /path/to/GrblWheel/scripts/install-pi.sh
+# Creates venv, installs package with [gpio], config, frontend (if npm), systemd units.
+# Paths in systemd are substituted from the repo root (no need to edit service files).
 
 set -e
 

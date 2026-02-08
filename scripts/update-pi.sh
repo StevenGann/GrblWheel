@@ -1,6 +1,7 @@
 #!/bin/bash
-# Pull latest GrblWheel from GitHub and run the install script.
+# Pull latest GrblWheel from GitHub and run the Pi install script.
 # Run from repo root: ./scripts/update-pi.sh
+# Exits with error if the current directory is not a git repository.
 
 set -e
 

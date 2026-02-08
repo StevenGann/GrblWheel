@@ -1,4 +1,9 @@
-"""Wire hardware controller to GRBL serial and macros (jog G-code, button -> macro)."""
+"""Wire hardware controller to GRBL serial and macros.
+
+When GPIO is enabled (Pi only), jog events send G91 G0 axis moves; button
+events run the configured macro (same as UI macro buttons). Uses app.state.grbl
+and app.state.config; no-op if not connected.
+"""
 
 from __future__ import annotations
 
@@ -9,11 +14,12 @@ from grblwheel.hardware import create_hardware_controller
 if TYPE_CHECKING:
     from fastapi import FastAPI
 
-# Step sizes for jog (mm or units)
+# Per-axis/option step size for one encoder tick (mm or units).
 JOG_STEPS = {"x": 0.1, "y": 0.1, "z": 0.01, "feedrate": 10, "spindle": 100}
 
 
 async def _on_jog(delta: int, mode: str, app) -> None:
+    """Send a relative jog move (G91 G0) for the given mode (x/y/z/feedrate)."""
     grbl = getattr(app.state, "grbl", None)
     if not grbl or not grbl.state.connected:
         return
@@ -34,6 +40,7 @@ async def _on_jog(delta: int, mode: str, app) -> None:
 
 
 async def _on_button(action: str, app) -> None:
+    """Run the macro named by action if it exists in config; sends lines via grbl."""
     if not action:
         return
     grbl = getattr(app.state, "grbl", None)
@@ -78,6 +85,7 @@ def setup_hardware(app: FastAPI) -> None:
 
 
 def teardown_hardware(app: FastAPI) -> None:
+    """Stop and clear the hardware controller on app shutdown."""
     ctrl = getattr(app.state, "hardware_controller", None)
     if ctrl is not None:
         try:

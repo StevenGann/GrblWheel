@@ -1,9 +1,13 @@
-"""Serial connection to GRBL: port discovery, connect, send line and wait for ok."""
+"""Serial connection to GRBL: port discovery, connect, send line and wait for ok.
+
+GRBL expects 115200 baud (configurable) and CR line ending. send_line() is blocking;
+call it from a thread or run_in_executor in async code.
+"""
 
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterator
 
 import serial
@@ -16,6 +20,7 @@ DEFAULT_BAUD = 115200
 
 @dataclass
 class SerialState:
+    """Current serial connection state; read by API and UI."""
     connected: bool = False
     port: str | None = None
     baud: int = DEFAULT_BAUD
@@ -35,6 +40,7 @@ class GrblSerial:
     """Synchronous serial wrapper for GRBL. Use from async via run_in_executor or a thread."""
 
     def __init__(self, baud: int = DEFAULT_BAUD):
+        """Optional baud rate (default 115200). Connection is via connect()."""
         self._ser: serial.Serial | None = None
         self._baud = baud
         self._state = SerialState(baud=baud)
@@ -45,7 +51,7 @@ class GrblSerial:
         return self._state
 
     def connect(self, port: str, baud: int | None = None) -> str | None:
-        """Connect to port. Returns None on success, or error message."""
+        """Connect to the given port. Returns None on success, or an error message string."""
         if self._ser and self._ser.is_open:
             self.disconnect()
         try:
@@ -67,6 +73,7 @@ class GrblSerial:
             return str(e)
 
     def disconnect(self) -> None:
+        """Close the serial port and clear connection state."""
         if self._ser and self._ser.is_open:
             try:
                 self._ser.close()

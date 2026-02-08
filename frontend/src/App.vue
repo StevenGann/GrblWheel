@@ -1,3 +1,7 @@
+<!--
+  GrblWheel UI: connection, G-code input, file list/upload/run, job controls, quick macros.
+  Targets 480p touch (e.g. 800×480); API base /api, job progress via WebSocket /api/job/ws.
+-->
 <template>
   <div class="app">
     <header class="header">
@@ -90,6 +94,7 @@
 </template>
 
 <script setup>
+/** Connection, command, files, job (start/pause/resume/stop), macros. Job progress from WebSocket. */
 import { ref, onMounted, onUnmounted } from "vue";
 
 const API = "/api";

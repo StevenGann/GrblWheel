@@ -1,6 +1,6 @@
 #!/bin/sh
-# Disable screen blanking and start Chromium in kiosk mode for GrblWheel UI.
-# Run after X is up (graphical.target). Assumes backend is at http://127.0.0.1:8765
+# GrblWheel kiosk: disable screen blanking and start Chromium fullscreen on the local backend.
+# Invoked by grblwheel-kiosk.service after graphical.target. Backend must be at http://127.0.0.1:8765
 
 export DISPLAY=${DISPLAY:-:0}
 

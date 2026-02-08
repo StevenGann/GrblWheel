@@ -1,9 +1,14 @@
-"""Job runner: send G-code file line-by-line or stream, with start-at-line and progress."""
+"""Job runner: send G-code file line-by-line with start-at-line, pause/resume/stop and progress.
+
+Each line is sent over the shared GrblSerial and we wait for 'ok' before the next.
+Empty lines and comments (;) are skipped. Progress is reported via an optional
+async callback (e.g. to push to WebSocket clients).
+"""
 
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Awaitable
 
@@ -12,6 +17,7 @@ from grblwheel.serial_grbl import GrblSerial
 
 
 class JobState(str, Enum):
+    """Current job execution state."""
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"
@@ -22,6 +28,7 @@ class JobState(str, Enum):
 
 @dataclass
 class JobProgress:
+    """Snapshot of job progress for API and WebSocket."""
     state: JobState = JobState.IDLE
     current_line: int = 0
     total_lines: int = 0
@@ -43,6 +50,8 @@ def _is_empty_or_comment(line: str) -> bool:
 
 
 class JobRunner:
+    """Runs a G-code file through GrblSerial line-by-line with pause/resume/stop and progress callback."""
+
     def __init__(self, grbl: GrblSerial, config: dict):
         self._grbl = grbl
         self._config = config
@@ -58,6 +67,7 @@ class JobRunner:
         return self._progress
 
     def set_progress_callback(self, cb: Callable[[JobProgress], Awaitable[None]] | None) -> None:
+        """Register an async callback invoked with JobProgress on state/line changes."""
         self._on_progress = cb
 
     async def _notify_progress(self) -> None:
@@ -140,10 +150,13 @@ class JobRunner:
         await self._notify_progress()
 
     def pause(self) -> None:
+        """Pause sending; run loop will wait until resume()."""
         self._pause_event.clear()
 
     def resume(self) -> None:
+        """Resume after pause."""
         self._pause_event.set()
 
     def stop(self) -> None:
+        """Request job to stop after the current line."""
         self._stop_requested = True

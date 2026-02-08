@@ -1,4 +1,10 @@
-"""Load and validate configuration."""
+"""Load and validate configuration.
+
+Config is loaded from a YAML file. Search order: env GRBLWHEEL_CONFIG,
+then config.yaml, then config/config.yaml in the current directory.
+Missing or invalid path returns DEFAULT_CONFIG. Upload paths are
+resolved relative to the config file's directory.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +16,7 @@ import yaml
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge override into base. Override values take precedence."""
     out = dict(base)
     for k, v in override.items():
         if k in out and isinstance(out[k], dict) and isinstance(v, dict):
@@ -19,6 +26,7 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return out
 
 
+# Default values when no config file is present or for missing keys.
 DEFAULT_CONFIG: dict[str, Any] = {
     "server": {"host": "0.0.0.0", "port": 8765},
     "serial": {"baud": 115200, "port": None},
@@ -38,7 +46,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
-    """Load YAML config from path or from env GRBLWHEEL_CONFIG or default paths."""
+    """Load YAML config. Path can be set explicitly, via GRBLWHEEL_CONFIG, or auto-detected.
+    Returns merged config (DEFAULT_CONFIG + file). Upload dir is made absolute relative to config file dir.
+    """
     if path is None:
         path = os.environ.get("GRBLWHEEL_CONFIG")
     if path is None:

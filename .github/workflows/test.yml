@@ -1,3 +1,4 @@
+# GrblWheel CI: run backend tests (pytest) and frontend build on push/PR to main or master.
 name: Test
 
 on:

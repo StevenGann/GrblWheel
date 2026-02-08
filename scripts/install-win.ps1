@@ -1,5 +1,7 @@
-# GrblWheel Windows install script for testing. Run from repo root: .\scripts\install-win.ps1
+# GrblWheel Windows install script for development/testing.
+# Run from repo root: .\scripts\install-win.ps1
 # Or from anywhere: & "D:\path\to\GrblWheel\scripts\install-win.ps1"
+# Creates .venv, installs package (no GPIO), copies config if missing, builds frontend if npm is available.
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path

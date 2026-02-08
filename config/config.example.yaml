@@ -1,5 +1,6 @@
 # GrblWheel configuration
-# Copy to config.yaml and adjust.
+# Copy to config/config.yaml (or config.yaml in project root) and adjust.
+# Override path with env: GRBLWHEEL_CONFIG=/path/to/config.yaml
 
 server:
   host: "0.0.0.0"

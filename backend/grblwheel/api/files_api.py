@@ -1,4 +1,4 @@
-"""File upload and list for G-code files."""
+"""File API: list uploaded G-code files, upload, get lines (for job start-at-line), delete."""
 
 from __future__ import annotations
 

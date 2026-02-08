@@ -1,4 +1,7 @@
-"""Serial and GRBL API: list ports, connect, disconnect, send command."""
+"""Serial and GRBL API: list ports, connect, disconnect, send single command.
+
+Blocking serial I/O is run in the default executor to avoid blocking the event loop.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +16,7 @@ router = APIRouter()
 
 
 def get_grbl(request: Request) -> GrblSerial:
+    """Return the app-scoped GrblSerial instance; create if missing."""
     if not hasattr(request.app.state, "grbl"):
         request.app.state.grbl = GrblSerial()
     return request.app.state.grbl

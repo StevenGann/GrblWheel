@@ -1,4 +1,8 @@
-"""Job API: start/pause/resume/stop file run; WebSocket for progress."""
+"""Job API: start/pause/resume/stop file run; WebSocket for live progress.
+
+JobRunner is app-scoped and shares GrblSerial with the rest of the app.
+Progress is broadcast to all connected WebSocket clients.
+"""
 
 from __future__ import annotations
 
@@ -32,6 +36,7 @@ async def _broadcast_progress(progress: JobProgress) -> None:
 
 
 def get_runner(request: Request) -> JobRunner:
+    """Return the app-scoped JobRunner; create with shared GrblSerial and progress callback if missing."""
     app = request.app
     if not hasattr(app.state, "job_runner"):
         grbl = app.state.grbl if hasattr(app.state, "grbl") else None
@@ -46,6 +51,7 @@ def get_runner(request: Request) -> JobRunner:
 
 
 def get_runner_from_app(app) -> JobRunner:
+    """Return the app-scoped JobRunner (for WebSocket endpoint which has app but not request)."""
     if not hasattr(app.state, "job_runner"):
         grbl = app.state.grbl if hasattr(app.state, "grbl") else None
         if grbl is None:
@@ -59,6 +65,7 @@ def get_runner_from_app(app) -> JobRunner:
 
 
 def progress_to_dict(p: JobProgress) -> dict:
+    """Convert JobProgress to a JSON-serializable dict for API and WebSocket."""
     return {
         "state": p.state.value,
         "current_line": p.current_line,

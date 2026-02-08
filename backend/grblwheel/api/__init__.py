@@ -1,4 +1,4 @@
-"""API routes."""
+"""API routes: health, serial, macros, files, job. All mounted under /api."""
 
 from fastapi import APIRouter
 

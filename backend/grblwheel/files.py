@@ -1,4 +1,8 @@
-"""G-code file storage: upload directory, safe filenames, list/read/delete."""
+"""G-code file storage: upload directory, safe filenames, list/read/delete.
+
+All file operations use safe_filename() to prevent path traversal; only
+alphanumeric, underscore, period, and hyphen are allowed in stored names.
+"""
 
 from __future__ import annotations
 
@@ -6,11 +10,12 @@ import re
 from pathlib import Path
 
 
-# Disallow path traversal and only allow safe chars for filenames
+# Only allow safe characters; path components are stripped to basename before check.
 SAFE_NAME = re.compile(r"^[a-zA-Z0-9_.\-]+$")
 
 
 def get_upload_dir(config: dict) -> Path:
+    """Return the upload directory path from config; create it if missing. Relative paths are under cwd."""
     path = config.get("paths", {}).get("upload_dir", "gcode")
     p = Path(path)
     if not p.is_absolute():
@@ -20,7 +25,7 @@ def get_upload_dir(config: dict) -> Path:
 
 
 def safe_filename(name: str) -> str | None:
-    """Return basename if safe, else None."""
+    """Return the basename if it matches SAFE_NAME (no path traversal, no unsafe chars); else None."""
     base = Path(name).name
     if not base or not SAFE_NAME.match(base):
         return None
@@ -28,7 +33,7 @@ def safe_filename(name: str) -> str | None:
 
 
 def list_files(upload_dir: Path) -> list[dict]:
-    """List G-code files with name and size."""
+    """List G-code files in the upload dir (extensions .gcode, .nc, .ngc, .txt or none). Returns list of {name, size}."""
     if not upload_dir.exists():
         return []
     out = []
@@ -81,7 +86,7 @@ def delete_file(upload_dir: Path, name: str) -> bool:
 
 
 def save_upload(upload_dir: Path, name: str, content: bytes, max_size: int = 50 * 1024 * 1024) -> str | None:
-    """Save uploaded content. Return None on success, else error message."""
+    """Save uploaded content. Returns None on success, or an error message string. max_size defaults to 50 MiB."""
     path = _resolve_path(upload_dir, name)
     if not path:
         return "Invalid filename"

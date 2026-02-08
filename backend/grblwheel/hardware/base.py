@@ -1,12 +1,16 @@
-"""Base interface for hardware controller."""
+"""Base interface for hardware controller.
+
+Implementations: MockHardwareController (no-op on Windows or when GPIO disabled),
+GpioHardwareController (Raspberry Pi with pigpio for encoder and buttons).
+"""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Callable, Awaitable
 
-# Jog mode: axis or feedrate etc.
-JogMode = str  # "x", "y", "z", "feedrate", "spindle", etc.
+# Jog mode selects which axis or parameter the encoder controls.
+JogMode = str  # e.g. "x", "y", "z", "feedrate", "spindle"
 
 
 class HardwareController(ABC):
