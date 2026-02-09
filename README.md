@@ -161,7 +161,7 @@ Config file: `config/config.yaml` (copy from `config/config.example.yaml`). Key 
 | `macros`  | Map macro name → list of G-code lines (e.g. `zero_xy`, `zero_z`, `z_probe`). |
 | `hardware`| When `gpio_enabled`: `buttons` (pin → macro name), `encoder` (`clk`, `dt` GPIO), `jog_mode_switch` (list of pins for X/Y/Z/feedrate). |
 
-Override config path with env: `GRBLWHEEL_CONFIG=/path/to/config.yaml`.
+Override config path with env: `GRBLWHEEL_CONFIG=/path/to/config.yaml`. Override port with `GRBLWHEEL_PORT` (e.g. `GRBLWHEEL_PORT=8766`) if 8765 is already in use.
 
 ## API overview
 

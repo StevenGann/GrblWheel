@@ -81,9 +81,17 @@ app = create_app(os.environ.get("GRBLWHEEL_CONFIG"))
 if __name__ == "__main__":
     import uvicorn
     cfg = app.state.config
-    uvicorn.run(
-        "grblwheel.main:app",
-        host=cfg["server"]["host"],
-        port=cfg["server"]["port"],
-        reload=os.environ.get("GRBLWHEEL_RELOAD", "0") == "1",
-    )
+    port = int(os.environ.get("GRBLWHEEL_PORT", cfg["server"]["port"]))
+    try:
+        uvicorn.run(
+            "grblwheel.main:app",
+            host=cfg["server"]["host"],
+            port=port,
+            reload=os.environ.get("GRBLWHEEL_RELOAD", "0") == "1",
+        )
+    except OSError as e:
+        if "10048" in str(e) or "address already in use" in str(e).lower() or "Errno 98" in str(e):
+            print(f"Port {port} is already in use. Stop the other process or use a different port:")
+            print(f"  PowerShell: $env:GRBLWHEEL_PORT=8766; py -m grblwheel.main")
+            print(f"  Cmd:        set GRBLWHEEL_PORT=8766 && py -m grblwheel.main")
+        raise
