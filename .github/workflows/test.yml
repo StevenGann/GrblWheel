@@ -1,4 +1,4 @@
-# GrblWheel CI: run backend tests (pytest) and frontend build on push/PR to main or master.
+# GrblWheel CI: validate repo and scripts on push/PR to main or master.
 name: Test
 
 on:
@@ -8,40 +8,20 @@ on:
     branches: [main, master]
 
 jobs:
-  backend:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install backend and dev deps
+      - name: Validate scripts exist and are valid bash
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          test -f scripts/setup-pi.sh
+          test -f scripts/launch-candle.sh
+          test -f scripts/check-update-and-reboot.sh
+          bash -n scripts/setup-pi.sh
+          bash -n scripts/launch-candle.sh
+          bash -n scripts/check-update-and-reboot.sh
 
-      - name: Run tests
-        run: pytest -v
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install frontend deps
+      - name: Validate config example
         run: |
-          cd frontend
-          npm install
-
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+          test -f config/grblwheel.example.conf

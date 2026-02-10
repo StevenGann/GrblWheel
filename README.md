@@ -1,185 +1,98 @@
 # GrblWheel
 
-GRBL jog wheel and G-code sender for Raspberry Pi (and Windows for development). Fullscreen touch UI + web interface, file upload, macros, and optional GPIO hardware (rotary encoder, buttons).
+Bootstrap and configuration to run **[Candle](https://github.com/Denvi/Candle)** (GRBL controller with G-code visualizer) on a Raspberry Pi: install Candle, start it fullscreen on boot, and keep this repo up to date by checking for new versions at startup and re-running setup + reboot when needed.
 
-## Overview
+## What this repo does
 
-GrblWheel lets you control a GRBL-based CNC mill from a Raspberry Pi with an optional physical jog wheel, or from any machine (including Windows) via the same web UI. It provides:
-
-- **Web UI**: Connection to GRBL over USB serial, G-code command input, file upload and run (with optional start-at-line), job pause/resume/stop, Zero X/Y, Zero Z, Z probe macros.
-- **Appliance mode (Pi)**: systemd services for auto-start and crash restart; Chromium kiosk for fullscreen touch on a small HDMI display.
-- **Hardware (Pi, optional)**: Rotary encoder as jog wheel, multi-position switch for axis/mode, buttons mapped to macros. Uses pigpio; no GPIO on Windows.
-
-**Architecture**: Python backend (FastAPI) serves REST and WebSocket APIs and (when built) the Vue 3 frontend. Serial communication with GRBL is synchronous and run in a thread pool. Job runner sends G-code files line-by-line (wait for `ok`). Config is YAML; macros and hardware pins are configured there.
-
-## Project structure
-
-```mermaid
-flowchart TB
-  root[GrblWheel]
-  root --> backend[backend/grblwheel]
-  root --> frontend[frontend]
-  root --> configDir[config]
-  root --> systemd[systemd]
-  root --> scripts[scripts]
-  root --> tests[tests]
-
-  backend --> main[main.py]
-  backend --> configPy[config.py]
-  backend --> serialGrbl[serial_grbl.py]
-  backend --> filesPy[files.py]
-  backend --> jobRunner[job_runner.py]
-  backend --> hwIntegration[hardware_integration.py]
-  backend --> apiDir[api]
-  backend --> hwDir[hardware]
-
-  apiDir --> health[health.py]
-  apiDir --> serialApi[serial_api.py]
-  apiDir --> macrosApi[macros_api.py]
-  apiDir --> filesApi[files_api.py]
-  apiDir --> jobApi[job_api.py]
-
-  hwDir --> base[base.py]
-  hwDir --> mock[mock_controller.py]
-  hwDir --> gpio[gpio_controller.py]
-
-  configDir --> configExample[config.example.yaml]
-  frontend --> frontendNote["Vue 3 + Vite SPA to frontend/dist"]
-  systemd --> systemdNote["grblwheel.service, kiosk.service, kiosk.sh"]
-  scripts --> scriptsNote["install-pi.sh, update-pi.sh, install-win.ps1, update-win.ps1"]
-```
+- **Uses Candle** for the GUI and control logic ([Denvi/Candle](https://github.com/Denvi/Candle) — Qt-based GRBL controller and G-code visualizer).
+- **Pi setup script** (`scripts/setup-pi.sh`):
+  - Installs build deps and **builds Candle** from source.
+  - Configures **autostart** so Candle runs **fullscreen** when the user logs in (e.g. after auto-login to desktop).
+  - Installs a **boot-time update checker** that looks at this repo for new commits and, if found, pulls, re-runs the setup script, and reboots.
+- **Serial port**: Candle does not accept the serial port on the command line. Configure it once in **Candle → Settings**; the Pi will remember it across reboots. If the launcher’s `-fullscreen` flag is not supported by your Candle build, you can edit `scripts/launch-candle.sh` and remove it; Candle will still start normally.
 
 ## Requirements
 
-- Python 3.10+
-- On Pi: optional `pigpio` for GPIO (jog wheel, buttons)
+- **Raspberry Pi** running Raspberry Pi OS (Raspbian) with desktop (for Candle’s GUI). Candle’s docs mention [Raspberry Pi OS Trixie](https://github.com/Denvi/Candle); the same build steps typically work on Bookworm.
+- Network for the update check and for building (apt, git clone of Candle).
 
-## Setup
+## Quick start (Raspberry Pi)
+
+1. Clone this repo (e.g. to `/home/pi/GrblWheel`):
+
+   ```bash
+   git clone https://github.com/StevenGann/GrblWheel.git
+   cd GrblWheel
+   ```
+
+2. Run the setup script (installs Candle, autostart, and update service):
+
+   ```bash
+   chmod +x scripts/setup-pi.sh scripts/launch-candle.sh scripts/check-update-and-reboot.sh
+   ./scripts/setup-pi.sh
+   ```
+
+3. Enable **auto-login to desktop** (Raspberry Pi OS: **Preferences → Raspberry Pi Configuration → System → Boot → Auto Login** set to “Desktop auto-login” or “Desktop”).
+
+4. Optionally edit `config/grblwheel.conf` (created from `config/grblwheel.example.conf`) for any future options. Serial port is still set in Candle’s Settings.
+
+5. Reboot. After boot:
+   - The **update checker** runs (checks this repo; if there’s a new version, it pulls, re-runs setup, and reboots).
+   - Once the desktop starts, **Candle** launches fullscreen. Set the serial port once in Candle’s Settings if needed.
+
+## Project structure
+
+```
+GrblWheel/
+├── config/
+│   └── grblwheel.example.conf   # Example config (serial_port, etc.)
+├── scripts/
+│   ├── setup-pi.sh              # Main Pi setup: install Candle, autostart, update service
+│   ├── launch-candle.sh         # Launches Candle fullscreen (used by autostart)
+│   └── check-update-and-reboot.sh  # Boot: check repo, pull + setup + reboot if new version
+├── systemd/
+│   └── README.md                # Notes on grblwheel-update service
+└── README.md
+```
+
+## What runs when
+
+1. **Boot** → network comes up → **grblwheel-update.service** runs once:
+   - Fetches `origin/main` (or `origin/master`) for this repo.
+   - If the Pi’s branch is behind: `git pull`, then `./scripts/setup-pi.sh`, then **reboot**.
+   - If up to date: exits; boot continues.
+2. **Desktop session** (e.g. auto-login) → **Candle** is started via `~/.config/autostart/candle-grblwheel.desktop` → runs `scripts/launch-candle.sh` → Candle in fullscreen.
+
+## Config
+
+- **config/grblwheel.conf** (copy from `config/grblwheel.example.conf`): used by the launcher; currently holds optional settings (e.g. serial port for reference). Candle’s own serial/baud settings are configured in **Candle → Settings** and stored by Candle.
+- **Candle**: set serial port and baud once in the app; they persist.
+
+## Manual update (without reboot)
+
+From the repo directory:
 
 ```bash
-# Create venv and install (Windows: use py instead of python3)
-py -m venv .venv
-.venv\Scripts\activate   # Windows
-# source .venv/bin/activate  # Linux/Pi
-pip install -e .
+git pull origin main   # or master
+./scripts/setup-pi.sh
 ```
 
-Optional GPIO on Pi:
-```bash
-pip install -e ".[gpio]"
-```
+Then restart Candle (log out and back in, or run `./scripts/launch-candle.sh`).
 
-Copy and edit config:
-```bash
-copy config\config.example.yaml config\config.yaml
-```
+## Customizing paths
 
-## Windows (testing)
+You can override paths when running setup:
 
-Quick install and update scripts (PowerShell, run from repo root). If scripts are blocked, run once: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`.
+- `GRBLWHEEL_ROOT` – path to this repo (default: inferred from script location).
+- `CANDLE_SRC` – where to clone Candle source (default: `$HOME/Candle`).
+- `CANDLE_INSTALL` – where to install Candle (default: `$HOME/programs/Candle`).
+- `CONFIG_DIR` – directory for `grblwheel.conf` (default: `$REPO_ROOT/config`).
 
-```powershell
-.\scripts\install-win.ps1
-```
-
-This creates `.venv`, installs the package, copies config if missing, and builds the frontend if `npm` is available. Then run:
-
-```powershell
-py -m grblwheel.main
-```
-
-To pull latest and re-run install:
-
-```powershell
-.\scripts\update-win.ps1
-```
-
-## Run (development)
-
-From the project root (GrblWheel):
+Example:
 
 ```bash
-py -m grblwheel.main
-# Or: uvicorn grblwheel.main:app --reload --host 0.0.0.0 --port 8765
+CANDLE_INSTALL=/opt/candle ./scripts/setup-pi.sh
 ```
-
-Then open http://localhost:8765 (after frontend is built, or use API at http://localhost:8765/api/health). Config is read from `config/config.yaml` or `config.yaml` in the current directory.
-
-## Frontend
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-Backend serves the built files from `frontend/dist` when present.
-
-## Testing
-
-```bash
-pip install -e ".[dev]"
-pytest -v
-```
-
-CI runs the same tests and a frontend build on push/PR to `main` or `master` (see [.github/workflows/test.yml](.github/workflows/test.yml)).
-
-## Raspberry Pi (appliance mode)
-
-**Quick install (after cloning):**
-```bash
-cd GrblWheel
-chmod +x scripts/install-pi.sh scripts/update-pi.sh
-./scripts/install-pi.sh
-```
-This creates the venv, installs Python deps (with GPIO), copies config if missing, builds the frontend if `npm` is available, and installs/enables the systemd units (paths are set automatically).
-
-**Update from GitHub:**
-```bash
-./scripts/update-pi.sh
-```
-Pulls the latest code and runs the install script again.
-
-**Manual steps** (if not using the install script):
-1. Clone the project to the Pi (e.g. `/home/pi/GrblWheel`).
-2. Create a venv and install: `python3 -m venv .venv && .venv/bin/pip install -e ".[gpio]"`.
-3. Copy and edit config: `cp config/config.example.yaml config/config.yaml`. Set `gpio_enabled: true` and hardware pins if using GPIO.
-4. Build frontend on Pi or copy `frontend/dist` from your PC: `cd frontend && npm install && npm run build`.
-5. Install systemd units (adjust paths in the service files if needed), then `sudo systemctl daemon-reload && sudo systemctl enable grblwheel grblwheel-kiosk && sudo systemctl start grblwheel`.
-6. For GPIO (jog wheel): run pigpio daemon: `sudo pigpiod` (or enable on boot).
-
-## Config reference
-
-Config file: `config/config.yaml` (copy from `config/config.example.yaml`). Key sections:
-
-| Section    | Purpose |
-|-----------|---------|
-| `server`  | `host`, `port` for the HTTP server (default 8765). |
-| `serial`  | `baud` (default 115200). `port` is usually left unset; selected in the UI. |
-| `paths`   | `upload_dir`: directory for uploaded G-code (relative to config dir). |
-| `gpio_enabled` | Set `true` on Pi to enable jog wheel/buttons; ignored on Windows. |
-| `macros`  | Map macro name → list of G-code lines (e.g. `zero_xy`, `zero_z`, `z_probe`). |
-| `hardware`| When `gpio_enabled`: `buttons` (pin → macro name), `encoder` (`clk`, `dt` GPIO), `jog_mode_switch` (list of pins for X/Y/Z/feedrate). |
-
-Override config path with env: `GRBLWHEEL_CONFIG=/path/to/config.yaml`. Override port with `GRBLWHEEL_PORT` (e.g. `GRBLWHEEL_PORT=8766`) if 8765 is already in use.
-
-## API overview
-
-All API routes are under `/api`. OpenAPI docs at `/docs` when the server is running.
-
-- **Health**: `GET /api/health`
-- **Serial**: `GET /api/serial/ports`, `GET /api/serial/state`, `POST /api/serial/connect`, `POST /api/serial/disconnect`, `POST /api/serial/send` (body: `{ "command": "G0 X10" }`)
-- **Macros**: `GET /api/macros`, `POST /api/macros/{name}/run`
-- **Files**: `GET /api/files`, `POST /api/files/upload`, `GET /api/files/{name}/lines`, `DELETE /api/files/{name}`
-- **Job**: `POST /api/job/start` (body: `{ "filename", "start_line" }`), `GET /api/job/status`, `POST /api/job/pause`, `POST /api/job/resume`, `POST /api/job/stop`, `WebSocket /api/job/ws` (progress pushed to clients)
-
-## For developers / handoff
-
-- **Adding a new API route**: Add a router in `backend/grblwheel/api/` and include it in `api/__init__.py`.
-- **Changing macros or default config**: Edit `config.py` `DEFAULT_CONFIG` and/or `config.example.yaml`.
-- **Frontend**: Vue 3 Composition API in `frontend/src/App.vue`; build with `npm run build` in `frontend/`; backend serves `frontend/dist` when present.
-- **Tests**: `pytest` with `tests/test_api.py` (FastAPI TestClient) and `tests/test_config.py`. Install dev deps: `pip install -e ".[dev]"`.
-- **GRBL protocol**: 115200 baud, CR line ending; send one line, wait for `ok` or `error` before next (see `serial_grbl.py`).
 
 ## License
 

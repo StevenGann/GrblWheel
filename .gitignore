@@ -1,5 +1,6 @@
 # Config with local overrides (keep example in repo)
 config/config.yaml
+config/grblwheel.conf
 
 # Uploaded G-code
 gcode/
